@@ -11,39 +11,62 @@ async function getData() {
 
         // Extracting MongoDB data
         data.MongoDB.flowers.forEach(res => {
-            const flower = {
+            const flowerEntry = {
                 database: data.MongoDB.database,
-                ...res
+                flower: {
+                    name: res.name,
+                    color: res.color,
+                    price: res.price,
+                    stock: res.stock,
+                    zip_code: res.zip_code
+                }
             };
-            combinedData.push(flower);
+            combinedData.push(flowerEntry);
         });
 
         // Extracting Neo4J data
         data.Neo4J.relationships.forEach(res => {
-            const flower = {
+            const flowerEntry = {
                 database: data.Neo4J.database,
-                ...res
+                flower: {
+                    name: res.name,
+                    color: res.color,
+                    price: res.price,
+                    stock: res.stock,
+                    zip_code: res.zip_code
+                }
             };
-            combinedData.push(flower);
+            combinedData.push(flowerEntry);
         });
 
         // Extracting Redis data
         Object.entries(data.Redis.inventory).forEach(([flowerName, res]) => {
-            const flower = {
+            const flowerEntry = {
                 database: data.Redis.database,
-                flower: flowerName,
-                ...res
+                flower: {
+                    name: res.name,
+                    color: res.color,
+                    price: res.price,
+                    stock: res.stock,
+                    zip_code: res.zip_code
+                }
             };
-            combinedData.push(flower);
+            combinedData.push(flowerEntry);
         });
 
         // Extracting SQL data
         data.SQL.flower_sales.forEach(res => {
-            const flower = {
+            const flowerEntry = {
                 database: data.SQL.database,
-                ...res
+                flower: {
+                    name: res.name,
+                    color: res.color,
+                    price: res.price,
+                    stock: res.stock,
+                    zip_code: res.zip_code
+                }
             };
-            combinedData.push(flower);
+            combinedData.push(flowerEntry);
         });
 
         return combinedData;
@@ -58,14 +81,35 @@ async function getData() {
     console.log('Lake:', lake);
 
     // Transform data lake into warehouse by Harsh Bhanushali
-    const warehouse = lake
-        .map(entry => entry.zip_code) // Extract zip codes
-        .filter((zip, index, self) => zip && self.indexOf(zip) === index) // Get unique zip codes
-        .reduce((acc, zip) => {
-            const count = lake.filter(entry => entry.zip_code === zip).length; // Count occurrences per zip
-            acc[zip] = { zip_code: zip, count }; // Add to warehouse
-            return acc;
-        }, {});
-
+    const warehouse = lake.reduce((acc, entry) => {
+        const zip = entry.flower?.zip_code;
+        if (zip) {
+            if (!acc[zip]) {
+                acc[zip] = { zipCode: zip, count: 0 };
+            }
+            acc[zip].count += 1; 
+        }
+        return acc;
+    }, {});
     console.log('Warehouse:', warehouse);
+    
+    // Data Loading and Display in app.html by Yucheng An
+    const zipCode = Object.keys(warehouse);
+    const dataCount = Object.values(warehouse).map(item => item.count);
+    const content = document.getElementById('barChart').getContext('2d');
+    new Chart(content, {
+        type: 'bar',
+        data: {
+            labels: zipCode,
+            datasets: [{
+                label: 'Count of Flowers by Zip Code',
+                data: dataCount,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+    });
+
+
 })();
